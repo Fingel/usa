@@ -1,5 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
+import argparse
 import logging
 import re
 import subprocess
@@ -56,35 +57,41 @@ def open_issue(issue_id: str):
     webbrowser.open_new_tab(f"{config["jira_url"]}/browse/{issue_id}")
 
 
-def open_current_issue() -> tuple[bool, str]:
-    """
-    Attempts to use the currently checked out branch name
-    to open a web browser to the appropriate JIRA issue
-    """
-    try:
-        branch = git_branch()
-    except GitException:
-        return False, "Could not determine git branch. Are you in a repo?"
-    issue_id = extract_issue_id(branch)
-    if issue_id is None:
-        return False, f"Could not determine issue from branch name: {branch}"
-    open_issue(issue_id)
-    return True, "success"
-
-
 """
 MAIN
 Main entrypoint, argument parsing.
 """
 
+parser = argparse.ArgumentParser(description="Scripts for working with Atlassian JIRA.")
+parser.add_argument(
+    "-i", "--issue", help="Issue id. Defaults to parsing from active Git branch."
+)
+parser.add_argument(
+    "-o", "--open", action="store_true", help="Open the issue in a web browser."
+)
+args = parser.parse_args()
+
 
 def main():
-    success, msg = open_current_issue()
-    if not success:
-        sys.stdout.write(msg)
+    if len(sys.argv) < 2:
+        parser.print_usage()
         sys.exit(1)
+
+    if args.issue is None:
+        try:
+            branch = git_branch()
+        except GitException:
+            sys.stdout.write("Could not determine git branch. Are you in a repo?")
+            sys.exit(1)
+        issue_id = extract_issue_id(branch)
+        if issue_id is None:
+            sys.stdout.write(f"Could not determine issue from branch name: {branch}")
+            sys.exit(1)
     else:
-        sys.exit(0)
+        issue_id = args.issue
+
+    if args.open:
+        open_issue(issue_id)
 
 
 if __name__ == "__main__":
