@@ -1,0 +1,25 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling-build"
+
+[project]
+name = "usa"
+version = "0.0.1"
+authors = [
+  { name="Austin Riba", email="austin@m51.io" },
+]
+description = "Un-Suckify Atlassian"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GPLv3 License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/Fingel/usa"
+Issues = "https://github.com/Fingel/usa/issues"
+
+[project.scripts]
+usa = "usa.cli:main"

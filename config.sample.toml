@@ -1,0 +1,6 @@
+# Copy this file to ~/.config/usa.toml
+
+jira_url = "https://myjira.atlassian.net/"
+email = "foo@example.com"
+# To obtain an API token go to https://id.atlassian.com/manage-profile/security/api-tokens
+api_token = ""
