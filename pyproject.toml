@@ -22,4 +22,4 @@ Homepage = "https://github.com/Fingel/usa"
 Issues = "https://github.com/Fingel/usa/issues"
 
 [project.scripts]
-usa = "usa.cli:main"
+usa = "usa:main"
