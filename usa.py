@@ -20,7 +20,7 @@ import tomllib
 CONFIG
 Settings file, logging setup, etc.
 """
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 with open(Path.home() / ".config/usa.toml") as f:
@@ -103,7 +103,10 @@ class JiraAPIClient:
         try:
             response = urllib.request.urlopen(req, bytes_data)
             body = response.read()
-            return json.loads(body.decode())
+            if len(body.decode()) > 1:
+                return json.loads(body.decode())
+            else:
+                return {}
         except HTTPError as e:
             logger.exception("Got HTTPError from Jira.")
             raise JiraClientError(e.read().decode())
@@ -160,6 +163,38 @@ def get_comments(issue_id: str) -> list[Comment]:
 
 
 """
+TRANSITIONS
+"""
+
+
+@dataclass
+class Transition:
+    id: int
+    name: str
+
+    def __str__(self) -> str:
+        return f"{self.id} - {self.name}"
+
+
+def parse_transitions_response(resp: dict) -> list[Transition]:
+    return [Transition(id=t["id"], name=t["name"]) for t in resp["transitions"]]
+
+
+def get_available_transitions(issue_id: str) -> list[Transition]:
+    client = JiraAPIClient()
+    endpoint = f"/rest/api/latest/issue/{issue_id}/transitions"
+    all_transitions = client.get_json(endpoint)
+    return parse_transitions_response(all_transitions)
+
+
+def do_transition(issue_id: str, transition: int):
+    client = JiraAPIClient()
+    endpoint = f"/rest/api/latest/issue/{issue_id}/transitions"
+    data = {"transition": {"id": transition}}
+    client.post_json(endpoint, data)
+
+
+"""
 MAIN
 Main entrypoint, argument parsing.
 """
@@ -174,6 +209,12 @@ parser.add_argument(
 )
 parser.add_argument(
     "-o", "--open", action="store_true", help="Open the issue in a web browser."
+)
+parser.add_argument(
+    "-t",
+    "--transition",
+    action="store_true",
+    help="Transition the issue's state (e.g Backlog -> In Progress)",
 )
 args = parser.parse_args()
 
@@ -206,6 +247,14 @@ def main():
         comments = get_comments(issue_id)
         for comment in comments:
             sys.stdout.write(str(comment))
+
+    if args.transition:
+        transitions = get_available_transitions(issue_id)
+        for transition in transitions:
+            sys.stdout.write(str(transition) + "\n")
+        transition_id = int(input("Enter id: "))
+        do_transition(issue_id, transition_id)
+        sys.stdout.write("Success.")
 
     if args.open:
         open_issue(issue_id)
