@@ -1,6 +1,12 @@
 # Copy this file to ~/.config/usa.toml
 
-jira_url = "https://myjira.atlassian.net/"
+jira_url = "https://myjira.atlassian.net"
 email = "foo@example.com"
+
 # To obtain an API token go to https://id.atlassian.com/manage-profile/security/api-tokens
 api_token = ""
+
+# It is possible to map directories to a list of issue ids that are used as parent issues.
+# When using --list-issues, these will be used to fetch related issues to the current project.
+[projects]
+"/path/to/my/project/" = ["ISSUE-123", "ISSUE-7654"]

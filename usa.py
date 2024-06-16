@@ -5,6 +5,7 @@ import base64
 import datetime
 import json
 import logging
+import os
 import re
 import subprocess
 import sys
@@ -195,6 +196,94 @@ def do_transition(issue_id: str, transition: int):
 
 
 """
+SEARCHING
+"""
+
+
+@dataclass
+class IssueSearch:
+    id: str
+    summary: str
+    description: str
+    assignee: str | None
+    status: str
+
+    def __str__(self) -> str:
+        if len(self.summary) > 50:
+            summary = self.summary[:47] + "..."
+        else:
+            summary = self.summary
+        return f"{self.id:<12}{self.status:<12}{self.assignee:<22}{summary}\n"
+
+
+def parse_search_response(resp: dict) -> list[IssueSearch]:
+    issues = []
+    for i in resp["issues"]:
+        if i["fields"]["assignee"] is not None:
+            assignee = i["fields"]["assignee"].get("emailAddress", "n/a")
+        else:
+            assignee = ""
+        issues.append(
+            IssueSearch(
+                id=i["key"],
+                summary=i["fields"]["summary"],
+                description=i["fields"]["description"],
+                assignee=assignee,
+                status=i["fields"]["status"]["name"],
+            )
+        )
+    return issues
+
+
+def issues_for_directory() -> list[str]:
+    projects = config.get("projects")
+    issues = []
+    if not projects:
+        return []
+    for d in projects.keys():
+        if Path(d) in Path(os.getcwd()).parents:
+            issues += projects[d]
+    return issues
+
+
+def get_parent_issue_id(issue_id: str) -> str | None:
+    client = JiraAPIClient()
+    endpoint = f"/rest/api/latest/issue/{issue_id}"
+    result = client.get_json(endpoint)
+    try:
+        return result["fields"]["parent"]["key"]
+    except KeyError:
+        return None
+
+
+def determine_parent_issues(issue_id: str) -> list[str]:
+    # Check config for issue mapping for the current directory
+    parent_issues = issues_for_directory()
+    if len(parent_issues) < 1:
+        # See if the current issue has a parent issue and use that
+        parent_issue = get_parent_issue_id(issue_id)
+        if parent_issue is None:
+            sys.stdout.write("Could not determine any parent issues.")
+            sys.exit(1)
+        else:
+            parent_issues = [parent_issue]
+    return parent_issues
+
+
+def issues_by_parents(parents: list[str]) -> list[IssueSearch]:
+    client = JiraAPIClient()
+    jql = f"parent IN ({",".join(parents)}) order by created DESC"
+    data = {
+        "jql": jql,
+        "fields": ["summary", "description", "status", "assignee"],
+        "maxResults": 1000,
+    }
+    endpoint = "/rest/api/latest/search/"
+    result = client.post_json(endpoint, data)
+    return parse_search_response(result)
+
+
+"""
 MAIN
 Main entrypoint, argument parsing.
 """
@@ -215,6 +304,12 @@ parser.add_argument(
     "--transition",
     action="store_true",
     help="Transition the issue's state (e.g Backlog -> In Progress)",
+)
+parser.add_argument(
+    "-l",
+    "--list-issues",
+    action="store_true",
+    help="List issues for the current project.",
 )
 args = parser.parse_args()
 
@@ -255,6 +350,20 @@ def main():
         transition_id = int(input("Enter id: "))
         do_transition(issue_id, transition_id)
         sys.stdout.write("Success.")
+
+    if args.list_issues:
+        parent_issues = determine_parent_issues(issue_id)
+        issues = issues_by_parents(parent_issues)
+        for idx, issue in enumerate(reversed(issues)):
+            line = f"{idx:>3} {str(issue)}"
+            sys.stdout.write(line)
+        sys.stdout.write(
+            f"\nFound {len(issues)} issues for parent issue(s): {", ".join(parent_issues)}\n"
+        )
+        if len(issues) == 100:
+            sys.stdout.write("Maximum issues returned, older ones will be hidden.\n")
+        selected_issue = int(input("Open issue: "))
+        open_issue(issues[selected_issue].id)
 
     if args.open:
         open_issue(issue_id)
