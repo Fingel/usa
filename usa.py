@@ -236,6 +236,11 @@ def parse_search_response(resp: dict) -> list[IssueSearch]:
 
 
 def issues_for_directory() -> list[str]:
+    """
+    Iterates over the entries in the [projects] section in the config
+    file. If the current working directory is a sub directory of an
+    entry, the listed issue ids are returned.
+    """
     projects = config.get("projects")
     issues = []
     if not projects:
@@ -247,6 +252,10 @@ def issues_for_directory() -> list[str]:
 
 
 def get_parent_issue_id(issue_id: str) -> str | None:
+    """
+    Return the parent issue id (used to be called epic link)
+    for a given issue id,
+    """
     client = JiraAPIClient()
     endpoint = f"/rest/api/latest/issue/{issue_id}"
     result = client.get_json(endpoint)
@@ -257,6 +266,10 @@ def get_parent_issue_id(issue_id: str) -> str | None:
 
 
 def determine_parent_issues(issue_id: str) -> list[str]:
+    """
+    Given an issue, figure out what it's parent issue IDs are
+    either by checking the config file or looking up via API.
+    """
     # Check config for issue mapping for the current directory
     parent_issues = issues_for_directory()
     if len(parent_issues) < 1:
@@ -271,6 +284,7 @@ def determine_parent_issues(issue_id: str) -> list[str]:
 
 
 def issues_by_parents(parents: list[str]) -> list[IssueSearch]:
+    """Gets a list of issues filtered by the given issue IDs"""
     client = JiraAPIClient()
     jql = f"parent IN ({",".join(parents)}) order by created DESC"
     data = {
