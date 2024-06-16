@@ -9,10 +9,10 @@ the terminal.
 
 Some features include:
 
-    * Open the current JIRA issue in a webrowser determined by the current Git branch.
-    * Comment on issues.
-    * Transition issues (change their state).
-    * List and open issues associated with a project.
+* Open the current JIRA issue in a webrowser determined by the current Git branch.
+* Comment on issues.
+* Transition issues (change their state).
+* List and open issues associated with a project.
 
 `usa` is a single file Python script that only depends on the standard library.
 Simply drop in somewhere in your $PATH and go.
