@@ -14,8 +14,12 @@ Some features include:
 * Transition issues (change their state).
 * List and open issues associated with a project.
 
+**Most of these interactions assume you prefix your git branches with the JIRA issue ID.**
+For example: `ISSUE-123-implement-widget` It's possible to use the `-i` flag to manually
+specify issue ID's but you will be missing most of the convenience of the script.
+
 `usa` is a single file Python script that only depends on the standard library.
-Simply drop in somewhere in your $PATH and go.
+Simply drop in somewhere in your $PATH and execute.
 
 ## Installation
 
