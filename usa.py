@@ -325,6 +325,11 @@ parser.add_argument(
     action="store_true",
     help="List issues for the current project.",
 )
+parser.add_argument(
+    "--plain",
+    action="store_true",
+    help="Display plain output and do not prompt for additional input.",
+)
 args = parser.parse_args()
 
 
@@ -371,13 +376,16 @@ def main():
         for idx, issue in enumerate(reversed(issues)):
             line = f"{idx:>3} {str(issue)}"
             sys.stdout.write(line)
-        sys.stdout.write(
-            f"\nFound {len(issues)} issues for parent issue(s): {", ".join(parent_issues)}\n"
-        )
-        if len(issues) == 100:
-            sys.stdout.write("Maximum issues returned, older ones will be hidden.\n")
-        selected_issue = int(input("Open issue: "))
-        open_issue(issues[selected_issue].id)
+        if not args.plain:
+            sys.stdout.write(
+                f"\nFound {len(issues)} issues for parent issue(s): {", ".join(parent_issues)}\n"
+            )
+            if len(issues) == 100:
+                sys.stdout.write(
+                    "Maximum issues returned, older ones will be hidden.\n"
+                )
+            selected_issue = int(input("Open issue: "))
+            open_issue(issues[selected_issue].id)
 
     if args.open:
         open_issue(issue_id)
