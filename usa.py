@@ -331,13 +331,13 @@ def display_matched_sections(issues: list[IssueSearch], search: str):
     terms = set(clean_string(search).split(" ")) - set(STOP_WORDS)
     for issue in issues:
         sys.stdout.write(f"\n--{issue.id}--\n")
-        sys.stdout.write(f"Assignee: {issue.assignee}\n")
-        sys.stdout.write(f"Status: {issue.status}\n")
-        sys.stdout.write(f"Summary: {issue.summary}\n")
+        sys.stdout.write(f"{'Assignee':.<15}{issue.assignee or "not assigned"}\n")
+        sys.stdout.write(f"{'Status':.<15}{issue.status}\n")
+        sys.stdout.write(f"{'Summary':.<15}{issue.summary}\n")
         if any(
             [t in clean_string(issue.description) for t in terms if issue.description]
         ):
-            sys.stdout.write(f"Description:\n{issue.description}\n")
+            sys.stdout.write(f"\nDescription:\n{issue.description}\n")
         for comment in issue.comments:
             if any([t in clean_string(comment.body) for t in terms if comment.body]):
                 sys.stdout.write(f"\nComment by {comment.email}:\n{comment.body}\n")
