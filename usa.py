@@ -27,6 +27,8 @@ logger = logging.getLogger(__name__)
 with open(Path.home() / ".config/usa.toml") as f:
     config = tomllib.loads(f.read())
 
+# Words that are removed from search matching as they are insignificant
+STOP_WORDS = ["all", "just", "being", "over", "both", "through", "yourselves", "its", "before", "herself", "had", "should", "to", "only", "under", "ours", "has", "do", "them", "his", "very", "they", "not", "during", "now", "him", "nor", "did", "this", "she", "each", "further", "where", "few", "because", "doing", "some", "are", "our", "ourselves", "out", "what", "for", "while", "does", "above", "between", "t", "be", "we", "who", "were", "here", "hers", "by", "on", "about", "of", "against", "s", "or", "own", "into", "yourself", "down", "your", "from", "her", "their", "there", "been", "whom", "too", "themselves", "was", "until", "more", "himself", "that", "but", "don", "with", "than", "those", "he", "me", "myself", "these", "up", "will", "below", "can", "theirs", "my", "and", "then", "is", "am", "it", "an", "as", "itself", "at", "have", "in", "any", "if", "again", "no", "when", "same", "how", "other", "which", "you", "after", "most", "such", "why", "a", "off", "i", "yours", "so", "the", "having", "once"]  # fmt: skip
 
 """
 ISSUES
@@ -144,7 +146,9 @@ class Comment:
 
 def parse_comments_response(resp: dict) -> list[Comment]:
     return [
-        Comment(email=c["author"]["emailAddress"], date=c["created"], body=c["body"])
+        Comment(
+            email=c["author"].get("emailAddress", ""), date=c["created"], body=c["body"]
+        )
         for c in resp["comments"]
     ]
 
@@ -207,6 +211,7 @@ class IssueSearch:
     description: str
     assignee: str | None
     status: str
+    comments: list[Comment]
 
     def __str__(self) -> str:
         if len(self.summary) > 50:
@@ -223,6 +228,7 @@ def parse_search_response(resp: dict) -> list[IssueSearch]:
             assignee = i["fields"]["assignee"].get("emailAddress", "n/a")
         else:
             assignee = ""
+        comments = parse_comments_response(i["fields"]["comment"])
         issues.append(
             IssueSearch(
                 id=i["key"],
@@ -230,6 +236,7 @@ def parse_search_response(resp: dict) -> list[IssueSearch]:
                 description=i["fields"]["description"],
                 assignee=assignee,
                 status=i["fields"]["status"]["name"],
+                comments=comments,
             )
         )
     return issues
@@ -283,18 +290,50 @@ def determine_parent_issues(issue_id: str) -> list[str]:
     return parent_issues
 
 
-def issues_by_parents(parents: list[str]) -> list[IssueSearch]:
-    """Gets a list of issues filtered by the given issue IDs"""
+def do_jql_search(jql: str) -> list[IssueSearch]:
     client = JiraAPIClient()
-    jql = f"parent IN ({",".join(parents)}) order by created DESC"
     data = {
         "jql": jql,
-        "fields": ["summary", "description", "status", "assignee"],
-        "maxResults": 1000,
+        "fields": ["summary", "description", "status", "assignee", "comment"],
+        "maxResults": 100,
     }
     endpoint = "/rest/api/latest/search/"
     result = client.post_json(endpoint, data)
-    return parse_search_response(result)
+    return list(reversed(parse_search_response(result)))
+
+
+def issues_by_parents(parents: list[str]) -> list[IssueSearch]:
+    """Gets a list of issues filtered by the given issue IDs"""
+    jql = f"parent IN ({",".join(parents)}) order by created DESC"
+    return do_jql_search(jql)
+
+
+def issues_by_search_term(term: str, parents: list[str] = []) -> list[IssueSearch]:
+    """Free form text search for jira issues"""
+    jql = f'text ~ "{term}*" order by created DESC'
+    if parents:
+        jql = f"parent IN ({", ".join(parents)}) AND " + jql
+    return do_jql_search(jql)
+
+
+def clean_string(string: str) -> str:
+    return re.sub(r"\W+", " ", string).strip().lower()
+
+
+def display_matched_sections(issues: list[IssueSearch], search: str):
+    terms = set(clean_string(search).split(" ")) - set(STOP_WORDS)
+    for issue in issues:
+        sys.stdout.write(f"\n--{issue.id}--\n")
+        sys.stdout.write(f"Assignee: {issue.assignee}\n")
+        sys.stdout.write(f"Status: {issue.status}\n")
+        sys.stdout.write(f"Summary: {issue.summary}\n")
+        if any(
+            [t in clean_string(issue.description) for t in terms if issue.description]
+        ):
+            sys.stdout.write(f"Description:\n{issue.description}\n")
+        for comment in issue.comments:
+            if any([t in clean_string(comment.body) for t in terms if comment.body]):
+                sys.stdout.write(f"\nComment by {comment.email}:\n{comment.body}\n")
 
 
 """
@@ -323,12 +362,18 @@ parser.add_argument(
     "-l",
     "--list-issues",
     action="store_true",
-    help="List issues for the current project.",
+    help="Display sibling issues.",
 )
 parser.add_argument(
     "--plain",
     action="store_true",
     help="Display plain output and do not prompt for additional input.",
+)
+parser.add_argument("-s", "--search", help="Do a free-form search through all issues.")
+parser.add_argument(
+    "--restrict",
+    action="store_true",
+    help="Restrict a search to sibling issues. Has no meaning outside --search.",
 )
 args = parser.parse_args()
 
@@ -373,7 +418,7 @@ def main():
     if args.list_issues:
         parent_issues = determine_parent_issues(issue_id)
         issues = issues_by_parents(parent_issues)
-        for idx, issue in enumerate(reversed(issues)):
+        for idx, issue in enumerate(issues):
             line = f"{idx:>3} {str(issue)}"
             sys.stdout.write(line)
         if not args.plain:
@@ -389,6 +434,14 @@ def main():
 
     if args.open:
         open_issue(issue_id)
+
+    if args.search:
+        if args.restrict:
+            parent_issues = determine_parent_issues(issue_id)
+            issues = issues_by_search_term(args.search, parents=parent_issues)
+        else:
+            issues = issues_by_search_term(args.search)
+        display_matched_sections(issues, args.search)
 
 
 if __name__ == "__main__":

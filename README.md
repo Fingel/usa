@@ -13,6 +13,7 @@ Some features include:
 * Comment on issues.
 * Transition issues (change their state).
 * List and open issues associated with a project.
+* General search of issues (and being able to view the context of the matched search terms).
 
 **Most of these interactions assume you prefix your git branches with the JIRA issue ID.**
 For example: `ISSUE-123-implement-widget` It's possible to use the `-i` flag to manually
