@@ -24,8 +24,15 @@ Settings file, logging setup, etc.
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-with open(Path.home() / ".config/usa.toml") as f:
-    config = tomllib.loads(f.read())
+try:
+    with open(Path.home() / ".config/usa.toml") as f:
+        config = tomllib.loads(f.read())
+except FileNotFoundError:
+    sys.stdout.write(
+        "Could not find configuration file. Please copy the config.sample.toml file "
+        + "found in this repo to ~/.config/usa.toml and fill in it's values."
+    )
+    sys.exit(1)
 
 # Words that are removed from search matching as they are insignificant
 STOP_WORDS = ["all", "just", "being", "over", "both", "through", "yourselves", "its", "before", "herself", "had", "should", "to", "only", "under", "ours", "has", "do", "them", "his", "very", "they", "not", "during", "now", "him", "nor", "did", "this", "she", "each", "further", "where", "few", "because", "doing", "some", "are", "our", "ourselves", "out", "what", "for", "while", "does", "above", "between", "t", "be", "we", "who", "were", "here", "hers", "by", "on", "about", "of", "against", "s", "or", "own", "into", "yourself", "down", "your", "from", "her", "their", "there", "been", "whom", "too", "themselves", "was", "until", "more", "himself", "that", "but", "don", "with", "than", "those", "he", "me", "myself", "these", "up", "will", "below", "can", "theirs", "my", "and", "then", "is", "am", "it", "an", "as", "itself", "at", "have", "in", "any", "if", "again", "no", "when", "same", "how", "other", "which", "you", "after", "most", "such", "why", "a", "off", "i", "yours", "so", "the", "having", "once"]  # fmt: skip
