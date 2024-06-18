@@ -416,9 +416,10 @@ def main():
 
     if args.transition:
         transitions = get_available_transitions(issue_id)
+        sys.stdout.write("Available states to transition to:\n")
         for transition in transitions:
             sys.stdout.write(str(transition) + "\n")
-        transition_id = int(input("Enter id: "))
+        transition_id = int(input("Enter state id: "))
         do_transition(issue_id, transition_id)
         sys.stdout.write("Success.")
 
