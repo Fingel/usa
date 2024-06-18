@@ -22,6 +22,53 @@ specify issue ID's but you will be missing most of the convenience of the script
 `usa` is a single file Python script that only depends on the standard library.
 Simply drop in somewhere in your $PATH and execute.
 
+## Usage examples
+
+Open the current issue in the default web browser:
+
+`> usa -o`
+
+Add a comment (also displays previous comments) to the current issue and then open it in the default browser:
+
+```
+> usa -c"Found some tech debt, working on it now" -o
+
+example@example.com         June 18, 2024 at 08:03 AM
+Please someone fix this
+
+joe@example.com             June 18, 2024 at 12:52 PM
+Found some tech debt, working on it now.
+```
+
+Transition the current issue (change state), add a comment, and open it:
+
+```
+> usa -c"Finished this!" -t -o
+joe@example.com                June 18, 2024 at 12:50 PM
+Finished this!
+
+Available states to transition to:
+11 - To Do
+21 - In Progress
+31 - Code Review
+41 - Testing
+51 - Done
+61 - Won't Do
+71 - Blocked
+Enter state id:
+```
+
+List sibling issues:
+
+```
+> usa -l
+ 1 Issue-3180   Backlog     joe@example.com      🏎️ PERF: Suspense - Async load components
+ 2 Issue-3182   Backlog     joe@example.com      ⚙️ CHORE: npm audit
+
+Found 2 issues for parent issue(s): Issue-2297, Issue-2885
+Open issue:
+```
+
 ## Installation
 
 Copy or link usa.py to somewhere in your $PATH e.g:
