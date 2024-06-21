@@ -20,7 +20,9 @@ For example: `ISSUE-123-implement-widget` It's possible to use the `-i` flag to 
 specify issue ID's but you will be missing most of the convenience of the script.
 
 `usa` is a single file Python script that only depends on the standard library.
-Simply drop in somewhere in your $PATH and execute.
+Simply drop in somewhere in your $PATH and execute. 
+
+Requires Python >= 3.11
 
 ## Usage examples
 
