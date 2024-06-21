@@ -1,5 +1,5 @@
 # 🇺🇸 USA 🇺🇸
-Un-Suckify Atlassian
+Un-Stickify Atlassian
 
 JIRA is slow, confusing and extremely bloated. Did I mention it's slow?
 
